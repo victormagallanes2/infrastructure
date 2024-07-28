@@ -1,0 +1,78 @@
+Comandos para instalar aws-load-balancer en un cluster:
+
+
+Descargargar un archivo con la politica deseada:
+
+curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.7.2/docs/install/iam_policy.json
+
+
+Creamos la politica en aws a partir del archivo descargado:
+
+aws iam create-policy \
+    --policy-name AWSLoadBalancerControllerIAMPolicy \
+    --policy-document file://iam_policy.json \
+    --profile arya-dev
+
+
+Creamos un rol y asignamos la politica creada:
+
+
+eksctl create iamserviceaccount \
+  --cluster=arya \
+  --namespace=kube-system \
+  --name=aws-load-balancer-controller \
+  --role-name AmazonEKSLoadBalancerControllerRole \
+  --attach-policy-arn=arn:aws:iam::234366607644:policy/AWSLoadBalancerControllerIAMPolicy \
+  --approve \
+  --region=eu-west-1 \
+  --profile arya-dev
+
+
+Instalar cert-magager:
+
+kubectl apply \
+    --validate=false \
+    -f https://github.com/jetstack/cert-manager/releases/download/v1.13.5/cert-manager.yaml
+
+
+Instalar el driver aws-load-balancer:
+
+Descargar del siguiente sitio:
+
+https://github.com/kubernetes-sigs/aws-load-balancer-controller/releases/tag/v2.8.1
+
+
+Editar archivo y eliminar la siguiente seccion:
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/name: aws-load-balancer-controller
+  name: aws-load-balancer-controller
+  namespace: kube-system
+---
+
+ Si no elimina esta sección, se sobrescribe la anotación requerida que realizó en la cuenta de servicio en un paso anterior. Al eliminar esta sección también se conserva la cuenta de servicio que creó en un paso anterior si elimina el controlador.
+
+
+Aplicar archivo:
+
+kubectl apply -f v2_8_1_full.yaml
+
+
+Descargar ingress class:
+
+curl -Lo v2_8_1_ingclass.yaml https://github.com/kubernetes-sigs/aws-load-balancer-controller/releases/download/v2.8.1/v2_8_1_ingclass.yaml
+
+
+Aplicar archivo:
+
+kubectl apply -f v2_8_1_ingclass.yaml
+
+
+Verificar que el controlador este instalado:
+
+kubectl get deployment -n kube-system aws-load-balancer-controller
+

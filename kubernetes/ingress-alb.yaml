@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: default
+  name: load-balancer1
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/success-codes: 200,404,301,302
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-west-1:234366607644:certificate/c25d25f3-78ae-4197-a806-1882f6b947dc
+spec:
+  ingressClassName: alb
+  rules:
+    - host: testaarpiav2bankingpams.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: v2-aarpia-banking-pams
+              port:
+                number: 3000
+    - host: testaarpia-auth-pams.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: aarpia-auth-pams
+              port:
+                number: 3000

@@ -1,0 +1,152 @@
+image: docker:24.0.7-alpine3.18
+services:
+  - name: docker:24.0.7-dind-alpine3.18
+
+stages:
+  - build
+  - test
+  - deply
+  - release
+  - deploynewcluster
+
+before_script:
+  - apk --update --no-cache add curl unzip sudo python3 py3-pip openssl bash curl-dev openjdk8-jre-base groff less maven
+  - pip3 install --upgrade pip && pip3 install --no-cache-dir awscli && rm -rf /var/cache/apk/*
+  - mvn --version
+  - aws --version
+  - mkdir ~/.aws/
+  - echo -e "[arya]" > ~/.aws/credentials
+  - echo -e "aws_access_key_id=$AWS_ACCESS_KEY_prod">> ~/.aws/credentials
+  - echo -e "aws_secret_access_key=$AWS_SECRET_KEY_prod">> ~/.aws/credentials
+  - echo -e "[arya-dev]" >> ~/.aws/credentials
+  - echo -e "aws_access_key_id=$AWS_ACCESS_KEY_dev">> ~/.aws/credentials
+  - echo -e "aws_secret_access_key=$AWS_SECRET_KEY_dev">> ~/.aws/credentials
+  - echo -e "[arya]" > ~/.aws/config
+  - echo -e "region = eu-west-1" >> ~/.aws/config
+  - echo -e "[arya-dev]" >> ~/.aws/config
+  - echo -e "region = eu-west-1" >> ~/.aws/config
+  - curl -o kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.23.13/2022-10-31/bin/linux/amd64/kubectl
+  - chmod +x ./kubectl
+  - mkdir -p $HOME/bin && cp ./kubectl $HOME/bin/kubectl && export PATH=$PATH:$HOME/bin
+  - cp ./kubectl /usr/local/bin/kubectl
+  - kubectl version --short --client
+  - curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+  - chmod +x get_helm.sh && ./get_helm.sh
+  - |
+    if [ -n "${CI_COMMIT_TAG+1}" ] || [ "$CI_COMMIT_REF_NAME" = "prod" ]; then
+      aws eks update-kubeconfig --name arya-digital --region eu-west-1 --profile arya
+      export ACCOUNT=$ACCOUNT_prod
+      export PROFILE=arya
+    else
+      aws eks update-kubeconfig --name arya-digital --region eu-west-1 --profile arya-dev
+      export ACCOUNT=$ACCOUNT_dev
+      export PROFILE=arya-dev
+    fi
+
+build-feature:
+  stage: build
+  script:
+    - aws --version
+    - mvn clean install -DskipTests
+    - REPOSITORY_URI="${ACCOUNT}.dkr.ecr.eu-west-1.amazonaws.com/catalogs-service"
+    - IMAGE_TAG="hash-$CI_COMMIT_SHORT_SHA"
+    - echo $CI_COMMIT_SHORT_SHA $REPOSITORY_URI $CI_COMMIT_TAG
+    - aws ecr get-login-password --region eu-west-1 --profile $PROFILE | docker login --username AWS --password-stdin $REPOSITORY_URI
+    - docker build --platform linux/amd64 -t $REPOSITORY_URI:$IMAGE_TAG .
+    - docker push $REPOSITORY_URI:$IMAGE_TAG
+  services:
+    - docker
+  except:
+    - dev
+    - prod
+    - tags
+
+build:
+  stage: build
+  script:
+    - aws --version
+    - mvn clean install -DskipTests
+    - REPOSITORY_URI="${ACCOUNT}.dkr.ecr.eu-west-1.amazonaws.com/catalogs-service"
+    - IMAGE_TAG="latest"
+    - echo $CI_COMMIT_SHORT_SHA $REPOSITORY_URI $CI_COMMIT_TAG
+    - aws ecr get-login-password --region eu-west-1 --profile $PROFILE | docker login --username AWS --password-stdin $REPOSITORY_URI
+    - docker build --platform linux/amd64 -t $REPOSITORY_URI:$IMAGE_TAG .
+    - docker push $REPOSITORY_URI:$IMAGE_TAG
+  services:
+    - docker
+  only:
+    - dev
+    - prod
+
+build-release:
+  stage: build
+  rules:
+    - if: $CI_COMMIT_TAG                 # Run this job when a tag is created
+  script:
+    - aws --version
+    - mvn clean install -DskipTests
+    - REPOSITORY_URI="${ACCOUNT}.dkr.ecr.eu-west-1.amazonaws.com/catalogs-service"
+    - IMAGE_TAG="$CI_COMMIT_TAG"
+    - echo $CI_COMMIT_SHORT_SHA $REPOSITORY_URI $CI_COMMIT_TAG
+    - aws ecr get-login-password --region eu-west-1 --profile $PROFILE | docker login --username AWS --password-stdin $REPOSITORY_URI
+    - docker build --platform linux/amd64 -t $REPOSITORY_URI:$IMAGE_TAG .
+    - docker push $REPOSITORY_URI:$IMAGE_TAG
+  services:
+    - docker
+
+test:
+  stage: test
+  script:
+    - helm ls
+    - helm upgrade --install --dry-run --debug --values eks/${CI_COMMIT_REF_NAME}-values.yaml catalogs-service eks
+  only:
+    - dev
+
+test-release:
+  stage: test
+  rules:
+    - if: $CI_COMMIT_TAG                 # Run this job when a tag is created
+  script:
+    - helm ls
+    - helm upgrade --install --dry-run --debug --values eks/prod-values.yaml catalogs-service eks
+
+deply:
+  stage: deply
+  script:
+    - helm ls
+    - helm upgrade --install --values eks/${CI_COMMIT_REF_NAME}-values.yaml catalogs-service eks --force --wait
+    - kubectl rollout restart deployment catalogs-service
+    - kubectl get pods -A
+    - kubectl get ingress
+  only:
+    - dev
+
+deply-release:
+  stage: deply
+  rules:
+    - if: $CI_COMMIT_TAG                 # Run this job when a tag is created
+  script:
+    - helm ls
+    - sed -i.bak "s#\latest#$CI_COMMIT_TAG#g" eks/prod-values.yaml
+    - helm upgrade --install --values eks/prod-values.yaml catalogs-service eks --force --wait
+    - kubectl rollout restart deployment catalogs-service
+    - kubectl get pods -A
+    - kubectl get ingress
+
+
+release_job:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_TAG                 # Run this job when a tag is created
+  script:
+    - echo "running release_job"
+  release:                               # See https://docs.gitlab.com/ee/ci/yaml/#release for available properties
+    tag_name: '$CI_COMMIT_TAG'
+    description: '$CI_COMMIT_TAG'
+
+deploy_newcluster:
+  stage: deploynewcluster
+  script:
+    - aws eks update-kubeconfig --name arya --region eu-west-1 --profile arya-dev
+    - kubectl apply -f eks/dev.yml

@@ -1,0 +1,48 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: invoicing-prc-dmn-configmap
+data:
+  enviroment: "local"
+  spring.datasource.url: "jdbc:postgresql://arya-apps.c1uenlxdhh1b.eu-west-1.rds.amazonaws.com:5432/db_invoicing_prc_dmn"
+  spring.datasource.username: "invoicing_prc_dmn"
+  spring.datasource.password: "Dev#Dbinvoicingprcdmn14Ter@2023"
+
+---
+# ... Deployment YAML definition
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: invoicing-prc-dmn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: invoicing-prc-dmn
+  template:
+    metadata:
+      labels:
+        app: invoicing-prc-dmn
+    spec:
+      #nodeName: node-example
+      containers:
+        - name: invoicing-prc-dmn
+          image: 234366607644.dkr.ecr.eu-west-1.amazonaws.com/invoicing-prc-dmn:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                 name: invoicing-prc-dmn-configmap
+          
+---
+# ... Service YAML definition
+apiVersion: v1
+kind: Service
+metadata:
+  name: invoicing-prc-dmn
+spec:
+  selector:
+    app: invoicing-prc-dmn
+  ports:
+    - port: 8080
+      targetPort: 8080
