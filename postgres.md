@@ -103,6 +103,11 @@ Para borrar usuario:
 
   DROP USER nombre_usuario;
 
+
+Conectarse a una bases de datos remota:
+
+  psql -U users_operational -h arya-apps.c1uenlxdhh1b.eu-west-1.rds.amazonaws.com -p 5432 db_operational
+
 Importar db
 
 primero se debe crear una db vacia, en este caso mythiqs
@@ -144,11 +149,11 @@ Entrar en psql estando postgre instalado en un contenedor
 
 Cuanto pesa una db:
 
-  SELECT pg_size_pretty( pg_database_size('db_invoicing') );
+  SELECT pg_size_pretty(pg_database_size('arya_core'));
 
 Cuanto pesa una tabla:
 
-  SELECT pg_size_pretty( pg_table_size('mi_tabla') );
+  SELECT pg_size_pretty(pg_table_size('mi_tabla'));
 
 
 Actualizar campo de un registro en especifico:

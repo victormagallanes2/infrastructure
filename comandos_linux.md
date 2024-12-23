@@ -155,8 +155,8 @@ Ingresar a un servidor:
 
 Ingresar a un servidor usando llave:
   
-  sudo chmod 400 my_key.perm
-  ssh -i my_key.perm root@45.77.137.13
+  sudo chmod 400 my_key.pem
+  ssh -i my_key.pem root@45.77.137.13
 
 Subir archivo desde local hasta el server:
 

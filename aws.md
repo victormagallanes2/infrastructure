@@ -76,37 +76,30 @@ eksctl create iamidentitymapping \
 
 Subir imagen a ECR de forma manual:
 
-Nota: usar root y configurar el perfil por default usando el comando aws configure
 
 
 Crear un repositorio:
 
 aws ecr create-repository \
-    --repository-name aarpia-invoicing-pams \
+    --repository-name aarpia-laboratory-etl \
     --region eu-west-1 \
-    --profile default
-
-#aws ecr get-login-password --region eu-west-1 --profile default | docker login --username AWS #--password-stdin 234366607644.dkr.ecr.eu-west-1.amazonaws.com/keycloak-dev
+    --profile arya-prod
 
 
 Hacer login:
 
-  aws ecr get-login-password --region eu-west-1 --profile default | docker login --username AWS --password-stdin 234366607644.dkr.ecr.eu-west-1.amazonaws.com/aarpia-invoicing-pams
-
-aarpia-invoicing-pams
+  aws ecr get-login-password --region eu-west-1 --profile arya-prod | docker login --username AWS --password-stdin 336205090264.dkr.ecr.eu-west-1.amazonaws.com/aarpia-laboratory-etl
 
 
 Contruir imagen:
 
-  docker build --platform linux/amd64 -t 234366607644.dkr.ecr.eu-west-1.amazonaws.com/keycloak-dev:latest --build-arg CI_COMMIT_REF_NAME=dev .
 
-
-sudo docker build --platform linux/amd64 -t 234366607644.dkr.ecr.eu-west-1.amazonaws.com/aarpia-invoicing-pams:latest --build-arg CI_COMMIT_REF_NAME=dev .
+docker build --platform linux/amd64 -t 336205090264.dkr.ecr.eu-west-1.amazonaws.com/aarpia-laboratory-etl:latest --build-arg CI_COMMIT_REF_NAME=prod .
 
 
 Subir imagen:
 
-  docker push 234366607644.dkr.ecr.eu-west-1.amazonaws.com/aarpia-invoicing-pams:latest
+  docker push 336205090264.dkr.ecr.eu-west-1.amazonaws.com/aarpia-laboratory-etl:latest
 
 
 # CloudWatch
@@ -117,11 +110,35 @@ Instalar agente en cluster de kubernetes para vers metricas de pods.
 Creamos la politica y lo asociamos al rol con que se creo el cluster:
 
 
-aws iam attach-role-policy \
---role-name group2-eks-node-group-20240608154936770000000005 \
---policy-arn arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy \
---profile arya-dev
+  aws iam attach-role-policy \
+  --role-name group2-eks-node-group-20240608154936770000000005 \
+  --policy-arn arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy \
+  --profile arya-dev
 
 Instalamos el agente usando el siguente comando:
 
-aws eks create-addon --cluster-name arya --addon-name amazon-cloudwatch-observability --region eu-west-1 --profile arya-dev
+  aws eks create-addon --cluster-name arya --addon-name amazon-cloudwatch-observability --region eu-west-1 --profile arya-dev
+
+# S3
+
+Subr archivo especifico a un bucket:
+
+  aws s3 cp ./test.txt s3://fitosoil-reports-files --profile arya-dev
+
+Subir carpetas y su contenido a s3:
+
+  aws s3 cp --recursive --cache-control="max-age=31536000" ./test s3://accounting-journal-files --profile arya-dev
+
+Listar bucket:
+
+  aws s3 ls
+
+Como saber cuanto pesa un archivo en especifico:
+
+  aws s3 ls s3://dev-backups-db/2024-09-06-db_operational.sql --human-readable
+
+Descargar archivos:
+
+  aws s3 cp s3://lab-stc-fitosoil-file/test2.txt . --profile arya-prod
+
+
