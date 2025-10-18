@@ -1,0 +1,11 @@
+comandos airflow
+
+sudo service airflow restart
+sudo service airflow-scheduler restart
+sudo service airflow-worker restart
+rm -rf /opt/airflow/logs/*
+
+
+reiniciar agente para lamonitorizacion de instancia
+
+sudo systemctl restart amazon-cloudwatch-agent

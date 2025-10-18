@@ -1,0 +1,23 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"batch/v1","kind":"CronJob","metadata":{"annotations":{},"name":"banking-cronjob","namespace":"default"},"spec":{"concurrencyPolicy":"Replace","failedJobsHistoryLimit":1,"jobTemplate":{"spec":{"template":{"spec":{"containers":[{"args":["/bin/sh","-c","date; echo \"Executing banking update cronjob ...\"; curl --head -X POST https://devawsbanking.controllerbi.tech/update_accounts; exit 0"],"image":"curlimages/curl","name":"banking-cronjob"}],"restartPolicy":"Never"}}}},"schedule":"0 6,10,14,19 * * *","successfulJobsHistoryLimit":1}}
+  creationTimestamp: "2023-05-06T16:06:57Z"
+  generation: 1
+  name: banking-cronjob
+  namespace: default
+  resourceVersion: "81687014"
+  uid: 53b6323e-21f0-45aa-b34c-f5bd4337dee0
+spec:
+  concurrencyPolicy: Replace
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    metadata:
+      creationTimestamp: null
+    spec:
+      template:
+        metadata:
+          creationTimestamp: null
+

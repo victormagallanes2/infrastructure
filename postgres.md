@@ -161,3 +161,59 @@ Actualizar campo de un registro en especifico:
   update tabla set campo='mi_valor' where campo='mi_valor';
   update users set is_staff='true' where email='rosario.silva@takeevents.com';
 
+
+CREATE ROLE users_analytical password 'pwfuyhLhlLuBcdF255f0nEO';
+
+CREATE DATABASE db_analytical WITH OWNER users_analytical;
+
+GRANT TEMPORARY, CREATE, CONNECT ON DATABASE db_analytical TO users_analytical;
+
+ALTER ROLE users_analytical WITH LOGIN;
+
+
+Respaldo creado bases de datos nueva:
+
+
+CREATE DATABASE db_prueba WITH OWNER users_operational;
+GRANT TEMPORARY, CREATE, CONNECT ON DATABASE db_prueba TO users_operational;
+
+
+Crear usuario de solo lectura:
+
+CREATE ROLE users_analytical_only_read password 'fkl2JbuenowJfg364bJfkOirutb';
+
+GRANT CONNECT ON DATABASE db_analytical TO users_analytical_only_read;
+
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO users_analytical_only_read;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO users_analytical_only_read;
+
+ALTER ROLE users_analytical_only_read WITH LOGIN;
+
+
+
+Crear usuario regular:
+
+CREATE ROLE users_operational password '4lmo7sCR39JueiLospJeungkHduoejUfjFklskwirpOutjfjskkdksjfjh';
+
+CREATE DATABASE db_operational WITH OWNER users_operational;
+
+GRANT TEMPORARY, CREATE, CONNECT ON DATABASE db_operational TO users_operational;
+
+ALTER ROLE users_operational WITH LOGIN;
+
+
+
+
+
+select * from information_schema.role_table_grants where grantee='users_analytical_only_read';
+
+SELECT * FROM pg_roles WHERE rolname = 'users_analytical_only_read';
+
+SELECT * FROM pg_user_grants( 'nombre_del_usuario' );
+
+
+Añadir campo a tabla existente:
+
+ALTER TABLE inv_invoice
+ADD COLUMN qty_comments INT4 DEFAULT 0 NULL;

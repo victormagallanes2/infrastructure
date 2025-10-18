@@ -265,3 +265,30 @@ Cifrar en base 64:
 
 
 
+
+Como conectarse desde un pod hacia una base de datos:
+
+
+entrar al pod y instalar psql:
+
+
+apk update
+
+apk add postgresql-client
+
+psql --version
+
+
+
+
+
+kubectl exec -it invoicing-process-68bfdd7d95-lk9vx -- psql -U users_invoicing_new -d invoicing -c 'SELECT * FROM mytable;'
+
+users_invoicing_new
+
+
+
+kubectl exec -ti invoicing-process-68bfdd7d95-lk9vx  -- /bin/sh
+
+
+psql -h aggraria-apps.cpbxwpg5dcnf.eu-west-1.rds.amazonaws.com -U users_invoicing_new -d invoicing

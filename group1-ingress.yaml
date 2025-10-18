@@ -1,0 +1,195 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: default
+  name: group1
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/success-codes: 200,404,301,302
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-west-1:336205090264:certificate/8faffa51-24b5-4261-a619-3ef9e9fade1e
+spec:
+  rules:
+    - host: prodaarpiabanking.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: aarpia-banking-pams
+              port: 
+                number: 3000
+    - host: prodaarpiatreasury.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: aarpia-treasury-pams
+              port: 
+                number: 3000
+    - host: prodinvoicing.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: invoicing-process
+              port:
+                number: 8080
+    - host: prodawsunnax.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: unnax
+              port:
+                number: 8080
+    - host: devawsusermanagment.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: usermanagement
+              port:
+                number: 8080
+    - host: devaarpiacache.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: cache-dbms-aarpia-cache-dbms
+              port:
+                number: 3000
+    - host: devaarpiacatalog.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: aarpia-catalogs-pams
+              port:
+                number: 3000
+    - host: devaarpiav2bankingpams.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: v2-aarpia-banking-pams
+              port:
+                number: 3000
+    - host: devaarpiacatalogdbms.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: v2-aarpia-catalog-dbms
+              port:
+                number: 3000
+    - host: devawsalfardoscore.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: alf-core
+              port:
+                number: 8080
+    - host: devawsbanking.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: new-banking-service
+              port:
+                number: 8080
+    - host: devawsnotification.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: notification-service
+              port:
+                number: 8080
+    - host: devawscatalogos.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: catalogs-service
+              port:
+                number: 8080
+    - host: devawscustomsuperset.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: custom-superset
+              port:
+                number: 8080
+    - host: devawsdrive.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: drive-service
+              port:
+                number: 8080
+    - host: devawsinvoicingprcdmn.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: invoicing-prc-dmn
+              port:
+                number: 8080
+    - host: devawsocr.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: ocr-service
+              port:
+                number: 8084
+    - host: devcore.controllerbi.tech
+      http:
+        paths:
+        - pathType: Prefix
+          path: /
+          backend:
+            service:
+              name: qub-core
+              port:
+                number: 8080

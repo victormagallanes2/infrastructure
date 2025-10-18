@@ -1,0 +1,15 @@
+FROM public.ecr.aws/docker/library/python:3.10.2
+ENV PYTHONUNBUFFERED 1
+ENV HOMEDIR=/code
+COPY . /code/
+WORKDIR /code/
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
+RUN python manage.py collectstatic --noinput
+RUN chmod a+x /code/entrypoint.sh
+EXPOSE 80
+CMD ["sh", "/code/entrypoint.sh"]
+y este es el archivo entrypoint
+#!/bin/bash
+python /code/manage.py migrate --noinput
+gunicorn --bind 0.0.0.0:80 --timeout 600 backend.wsgi:application

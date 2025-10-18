@@ -1,0 +1,296 @@
+# Apis backend Python
+
+Project path on the server: /var/www/backends/ary
+File path .env: /var/www/backends/ary/qubis
+
+Servers Portal Ary:
+
+Domain: https://core.machette.tech/
+Server: v01
+Ip: 95.179.147.244       Folder:/var/www/backends/ary
+
+Domain: https://core.arya.digital/
+Server: v03
+Ip: 78.141.218.208 Folder:/var/www/backends/ary
+
+Servers Portal Aggraria:
+
+Domain: https://core.aggraria.arya.digital/
+Server: aggraria-v05-ldap-prod
+Ip: 208.85.19.132  Folder:/var/www/backends/ary
+
+
+Commands for the service:
+
+How can we restart a python app:
+
+    sudo supervisorctl restart ary
+
+How can we stop a python app:
+
+    sudo supervisorctl stop ary
+
+How can we start a python app:
+
+    sudo supervisorctl start ary
+
+How can we status a python app:
+
+    sudo supervisorctl status ary
+
+Apply changes to the database:
+
+You must activate the virtual environment by placing us in the root of the project and using this command:
+
+    source virtualenv/bin/activate
+
+Then it must be located in the manage.py file and execute the following command:
+
+    python manage.py migrate
+
+How to check the logs:
+
+    cat /var/www/backends/ary/myapp.log
+
+How to check the logs gunicorn:
+
+    sudo supervisorctl tail ary
+
+How to check logs nginx app:
+
+    cat /var/log/nginx/access.log
+
+How to check the errors app:
+
+    cat /var/www/backends/ary/logs/error.log
+
+How to restart nginx service:
+
+    sudo systemctl restart nginx
+## django application deployment 
+To start this process, we will download and install all the necessary elements from the Ubuntu repositories. We'll use the Python pip package manager to install additional components later.
+
+We will need to update the local apt package index and then download and install the packages. The packages we install depend on the version of Python you use in your project.
+
+If you're using Django with Python 3, type the following:
+
+`sudo apt update
+	sudo apt install python3-pip python3-dev libpq-dev postgresql 	postgresql-contrib nginx curl`
+
+
+#### Create a virtual Python environment for your project
+First we need access to the virtualenv command. We can install it with pip.
+
+If you are using Python 3, update pip and install the package by typing the following:
+
+`sudo -H pip3 install --upgrade pip`
+`sudo -H pip3 install virtualenv`
+
+With virtualenv installed, we can start to shape our project. Create y a directory where we can save our project files and position yourself in it:
+
+`mkdir ~/myprojectdir`
+`cd ~/myprojectdir`
+
+In the project directory, create a Python virtual environment by typing the following:
+
+`virtualenv myprojectenv`
+
+This will create a directory called myprojectenv in your myprojectdir directory. Internally, it will install a local version of Python and a local version of pip. We can use this to install and configure a Python sandbox for our project.
+
+Before installing the Python components required for our project, we need to activate the virtual environment. You can do this by typing the following:
+	
+  `source myprojectenv/bin/activate`
+  
+  Your command line will change to indicate that you are now performing operations in a virtual Python environment. It will look something like this: 
+  `(myprojectenv)user@host:~/myprojectdir$.`
+ 
+ With the virtual environment active, proceed to install the requirements with:
+ 
+ `sudo pip install -r requirements.txt`
+ 
+>  Note: When the virtual environment is activated (when (myprojectenv) is at the start of your command line), use pip instead of pip3, even if you use Python 3. The virtual environment copy of the tool is always called pip, regardless of python version.
+{.is-success}
+
+#### Ajustar la configuración del proyecto
+
+`nano ~/myprojectdir/myproject/settings.py`
+
+First locate the **ALLOWED_HOSTS** directive. This defines a list of server addresses or domain names that can be used to establish a connection to the instance in Django. Any incoming request with a Host header that is not in this list will throw an exception. Django requires you to set this to prevent a certain class of security vulnerability.
+
+> Note: Be sure to include localhost as one of the options, as we will be authorizing connections through a local Nginx instance.
+{.is-info}
+
+> Make sure to add the necessary data in the .env file
+{.is-info}
+
+Now, we can migrate the initial database schema to our PostgreSQL database using the administration script:
+
+`~/myprojectdir/manage.py makemigrations`
+`~/myprojectdir/manage.py migrate`
+
+Create an administrative user for the project by typing the following:
+
+`~/myprojectdir/manage.py createsuperuser`
+
+We can collect all static content in the directory location we set by typing the following:
+
+`~/myprojectdir/manage.py collectstatic`
+
+You must confirm the operation. The static files will then be placed in a directory called static, inside your project directory.
+
+Finally, you can test your project by starting the Django development server with this command:
+
+`~/myprojectdir/manage.py runserver 0.0.0.0:8000`
+
+
+#### Test Gunicorn's ability to present the project
+
+The last thing we want to do before shutting down our virtual environment is to test Gunicorn to make sure it can get the app working. We can do this by going into our project directory and using gunicorn to load the project's WSGI module:
+
+`cd ~/myprojectdir`
+`gunicorn --bind 0.0.0.0:8000 myproject.wsgi`
+
+This will start Gunicorn in the same interface that the Django development server was running on.
+
+With this we will have finished configuring our application in Django. We can close our virtual environment by typing the following:
+
+`deactivate`
+
+#### Create systemd socket and service files for Gunicorn
+
+The Gunicorn socket will be created at startup and will listen for connections. When a connection is established, systemd will automatically start the Gunicorn process to handle the connection.
+
+Start by creating and opening a systemd socket file for Gunicorn with sudo privileges:
+
+`sudo nano /etc/systemd/system/gunicorn.socket`
+
+Inside it, we'll create a **[Unit]** section to describe the socket, a **[Socket]** section to define the socket's location, and an **[Install]** section to make sure the socket is created at the right time:
+
+> [Unit]
+> Description=gunicorn socket
+> 
+> [Socket]
+> ListenStream=/run/gunicorn.sock
+> 
+> [Install]
+> WantedBy=sockets.target
+
+Next, create and open a systemd service file for Gunicorn with sudo privileges in your text editor. The service file name must match the socket file name, except for the extension:
+
+`sudo nano /etc/systemd/system/gunicorn.service`
+
+Start with the [Unit] section, which is used to specify metadata and dependencies. Here we will enter a description of our service and instruct the init system to start it only after the network target has been reached: Since our service relies on the socket in the socket file, we need to include a Requires directive to indicate this relationship:
+
+> [Unit]
+> Description=gunicorn daemon
+> Requires=gunicorn.socket
+> After=network.target
+
+Next, we will open the [Service] section. We will specify the user and group with which we want the process to run. We'll give ownership of the process to our normal user account, since it has ownership of all relevant files. We will give ownership of the group to the www-data group so that Nginx can easily communicate with Gunicorn.
+
+Next, we'll map the working directory and specify the command to use to start the service. In this case, we will have to specify the full path to the Gunicorn executable, which is installed in our virtual environment. We will bind the process to the Unix socket we created in the /run directory so that the process can communicate with Nginx. We log all data to standard output so that the journald process can collect the Gunicorn logs. We can also specify any optional Gunicorn settings here. For example, we specify 3 worker processes in this case.
+
+Finally, we'll add an [Install] section. This will tell systemd what to bind this service to if we enable it to load at startup. We want this service to start when the normal multi-user system is up and running:
+
+> [Unit]
+> Description=gunicorn daemon
+> Requires=gunicorn.socket
+> After=network.target
+> 
+> [Service]
+> User=sammy
+> Group=www-data
+> WorkingDirectory=/home/sammy/myprojectdir
+> ExecStart=/home/sammy/myprojectdir/myprojectenv/bin/gunicorn \
+>           --access-logfile - \
+>           --workers 3 \
+>           --bind unix:/run/gunicorn.sock \
+>           myproject.wsgi:application
+> [Install]
+WantedBy=multi-user.target
+
+Now we can start and enable the Gunicorn socket. This will create the socket file in /run/gunicorn.sock now and on startup. When a connection to that socket is established, systemd will start gunicorn.service automatically to handle it:
+
+`sudo systemctl start gunicorn.socket`
+`sudo systemctl enable gunicorn.socket`
+
+#### Verify the Gunicorn socket file
+Check the status of the process to see if it was able to start the following:
+
+`sudo systemctl status gunicorn.socket`
+
+Next, check for the existence of the gunicorn.sock file in the /run directory:
+
+`file /run/gunicorn.sock`
+
+> Output
+> /run/gunicorn.sock: socket
+
+If the systemctl status command reports an error or if it cannot find the gunicorn.sock file in the directory, then the Gunicorn socket could not be created successfully. Check the Gunicorn socket logs by typing the following:
+
+`sudo journalctl -u gunicorn.socket`
+
+#### Test socket activation
+
+`sudo systemctl status gunicorn`
+
+> Output
+> ● gunicorn.service - gunicorn daemon
+>    Loaded: loaded (/etc/systemd/system/gunicorn.service; disabled; vendor preset: enabled)
+>    Active: inactive (dead)
+
+To test the socket triggering mechanism, we can send a connection to the socket via curl by typing the following:
+
+`curl --unix-socket /run/gunicorn.sock localhost`
+
+You should see the HTML output of your app in the terminal. This indicates that Gunicorn started and was able to render your Django application. You can verify that the Gunicorn service is working by typing the following:
+
+`sudo systemctl status gunicorn`
+
+> Output
+> ● gunicorn.service - gunicorn daemon
+>    Loaded: loaded (/etc/systemd/system/gunicorn.service; disabled; vendor preset: enabled)
+>    Active: active (running) since Mon 2018-07-09 20:00:40 UTC; 4s ago
+>  Main PID: 1157 (gunicorn)
+>     Tasks: 4 (limit: 1153)
+>    CGroup: /system.slice/gunicorn.service
+>            ├─1157 /home/sammy/myprojectdir/myprojectenv/bin/python3 /home/sammy/myprojectdir/myprojectenv/bin/gunicorn --access-logfile - --workers 3 --bind unix:/run/gunicorn.sock myproject.wsgi:application
+>            ├─1178 /home/sammy/myprojectdir/myprojectenv/bin/python3 /home/sammy/myprojectdir/myprojectenv/bin/gunicorn --access-logfile - --workers 3 --bind unix:/run/gunicorn.sock myproject.wsgi:application
+>            ├─1180 /home/sammy/myprojectdir/myprojectenv/bin/python3 /home/sammy/myprojectdir/myprojectenv/bin/gunicorn --access-logfile - --workers 3 --bind unix:/run/gunicorn.sock myproject.wsgi:application
+>            └─1181 /home/sammy/myprojectdir/myprojectenv/bin/python3 /home/sammy/myprojectdir/myprojectenv/bin/gunicorn --access-logfile - --workers 3 --bind unix:/run/gunicorn.sock myproject.wsgi:application
+> 
+> Jul 09 20:00:40 django1 systemd[1]: Started gunicorn daemon.
+> Jul 09 20:00:40 django1 gunicorn[1157]: [2018-07-09 20:00:40 +0000] [1157] [INFO] Starting gunicorn 19.9.0
+> Jul 09 20:00:40 django1 gunicorn[1157]: [2018-07-09 20:00:40 +0000] [1157] [INFO] Listening at: unix:/run/gunicorn.sock (1157)
+> Jul 09 20:00:40 django1 gunicorn[1157]: [2018-07-09 20:00:40 +0000] [1157] [INFO] Using worker: sync
+> Jul 09 20:00:40 django1 gunicorn[1157]: [2018-07-09 20:00:40 +0000] [1178] [INFO] Booting worker with pid: 1178
+> Jul 09 20:00:40 django1 gunicorn[1157]: [2018-07-09 20:00:40 +0000] [1180] [INFO] Booting worker with pid: 1180
+> Jul 09 20:00:40 django1 gunicorn[1157]: [2018-07-09 20:00:40 +0000] [1181] [INFO] Booting worker with pid: 1181
+> Jul 09 20:00:41 django1 gunicorn[1157]:  - - [09/Jul/2018:20:00:41 +0000] "GET / HTTP/1.1" 200 16348 "-" "curl/7.58.0"
+
+If the output from curl or systemctl status indicates that a problem occurred, check the logs for additional information:
+
+`sudo journalctl -u gunicorn`
+
+Check your **/etc/systemd/systemd/system/gunicorn.service** file for problems. If you make changes to the /etc/systemd/systemd/system/gunicorn.service file, reload the daemon to read the service definition again and restart the Gunicorn process by typing the following:
+
+`sudo systemctl daemon-reload`
+`sudo systemctl restart gunicorn`
+
+> See the nginx configuration section to continue with the deployment.
+{.is-info}
+
+
+
+
+
+
+      
+
+
+
+
+
+
+    
+

@@ -1,0 +1,23 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: banking-cronjob
+  namespace: default
+spec:
+  schedule: "0 7,11,14,19 * * *"
+  concurrencyPolicy: Allow
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: nickel-cronjob
+            image: curlimages/curl
+            args:
+            - /bin/sh
+            - -c
+            - date; echo resp1=$(curl https://prodawsbanking.controllerbi.tech/update_accounts/) ; echo $resp1; exit 0
+          restartPolicy: Never
+
