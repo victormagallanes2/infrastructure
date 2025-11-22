@@ -243,17 +243,10 @@ Filtrar pod por nodos:
 
 Generar archivos yaml a partir de un deploy existente:
 
-  kubectl get service hellworldexample-helloworld -n default -o yaml > service.yaml
-  kubectl get deployment myreleasename-helloworld -n default -o yaml > deployment.yaml
+  kubectl get service opg-treasury-pams -n default -o yaml > service.yaml
+  kubectl get deployment opg-treasury-pams -n default -o yaml > deployment.yaml
+  kubectl get configmaps opg-treasury-pams-configmap -o yaml > configmap.yaml
 
-Ver configmaps existentes en un despliegue:
-
-  kubectl get configmaps
-
-Ver configmaps en especidico:
-
-  kubectl get configmaps usermanagement-configmap -o yaml
-  kubectl get pods --field-selector=status.phase=Running
 
 Instalar curl dentro de un pod:
 
