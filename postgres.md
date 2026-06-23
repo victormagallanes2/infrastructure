@@ -192,6 +192,25 @@ ALTER ROLE users_analytical_only_read WITH LOGIN;
 
 
 
+-- 1. Crear el usuario (usamos USER para ahorrar el comando ALTER ROLE posterior)
+CREATE USER users_operational_only_read WITH PASSWORD 'ounl2JbuenowJ966914bJfkOirutb';
+
+-- 2. Permiso de conexión
+GRANT CONNECT ON DATABASE db_operational TO users_operational_only_read;
+
+-- 3. PERMISO CRUCIAL: Uso del esquema
+GRANT USAGE ON SCHEMA public TO users_operational_only_read;
+
+-- 4. Permiso de lectura sobre lo actual
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO users_operational_only_read;
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO users_operational_only_read; -- Opcional, por si manejas tipos serial
+
+-- 5. Permiso de lectura para el futuro
+ALTER DEFAULT PRIVILEGES IN SCHEMA public 
+GRANT SELECT ON TABLES TO users_operational_only_read;
+
+
+
 Crear usuario regular:
 
 CREATE ROLE users_operational password '4lmo7sCR39JueiLospJeungkHduoejUfjFklskwirpOutjfjskkdksjfjh';
@@ -206,7 +225,7 @@ ALTER ROLE users_operational WITH LOGIN;
 
 
 
-select * from information_schema.role_table_grants where grantee='users_analytical_only_read';
+Select * from information_schema.role_table_grants where grantee='users_analytical_only_read';
 
 SELECT * FROM pg_roles WHERE rolname = 'users_analytical_only_read';
 
